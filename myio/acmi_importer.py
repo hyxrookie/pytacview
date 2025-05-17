@@ -2,6 +2,7 @@
 ACMI文件导入器 - 简化版
 用于读取和解析ACMI格式文件
 """
+import math
 import re
 from datetime import datetime, timedelta
 import numpy as np
@@ -187,11 +188,26 @@ class ACMIImporter:
             # 解析实体属性
             name = None
             color = None
+            entity_type = None
+            radius = None
 
             # 查找Name属性
             name_match = re.search(r'Name=([^,]+)', data)
             if name_match:
                 name = name_match.group(1)
+
+            # 查找Type属性
+            type_match = re.search(r'Type=([^,]+)', data)
+            if type_match:
+                entity_type = type_match.group(1)
+
+            # 查找Radius属性 (用于爆炸效果)
+            radius_match = re.search(r'Radius=([^,]+)', data)
+            if radius_match:
+                try:
+                    radius = float(radius_match.group(1))
+                except ValueError:
+                    radius = 100  # 默认半径
 
             # 如果未找到名称，使用ID作为名称
             if not name:
@@ -213,10 +229,22 @@ class ACMIImporter:
                     color = (0.7, 0.7, 0.7)  # 默认灰色
 
             # 创建新实体
-            entity = Entity(entity_id, name)
+            entity = Entity(entity_id, name, entity_type, None)  # 不设置coalition
             entity.color = color
+
+            # 对于爆炸类型，设置特殊属性
+            if entity_type and "explosion" in entity_type.lower():
+                entity.is_explosion = True
+                entity.radius = radius if radius else 300  # 默认爆炸半径
+                print(f"创建爆炸实体: {name}, 半径: {entity.radius}")
+            elif (entity_id.startswith('A') or entity_id.startswith('B')) and name and "AIM" in name:
+                entity.is_missile = True
+                print(f"创建导弹实体: {name}")
+            else:
+                entity.is_aircraft = True
+                print(f"创建飞机实体: {name}")
+
             current_entities[entity_id] = entity
-            print(f"创建实体: {name}")
         else:
             entity = current_entities[entity_id]
 
@@ -244,9 +272,9 @@ class ACMIImporter:
                     # 解析方向（如果有）
                     orientation = None
                     if len(t_values) >= 6:
-                        pitch = float(t_values[3])
-                        yaw = float(t_values[4])
-                        roll = float(t_values[5])
+                        pitch = math.radians(float(t_values[3]))
+                        yaw = math.radians(float(t_values[4]))
+                        roll = math.radians(float(t_values[5]))
                         orientation = [pitch, yaw, roll]
 
                     # 添加轨迹点
