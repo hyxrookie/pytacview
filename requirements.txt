@@ -1,0 +1,7 @@
+numpy>=1.20.0
+PyOpenGL>=3.1.5
+PyOpenGL-accelerate>=3.1.5
+PyQt5>=5.15.4
+pyquaternion>=0.9.9
+matplotlib>=3.4.0
+pymap3d>=3.1.0
